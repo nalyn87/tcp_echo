@@ -1,4 +1,6 @@
 import net from 'net';
+import { readHeader, writeHeader } from './util.js';
+import { HANDLER_ID, TOTAL_LENGTH_SIZE } from './constants.js';
 
 const HOST = 'localhost';
 const PORT = 3000;
@@ -10,11 +12,23 @@ client.connect(PORT, HOST, () => {
 
   const message = "Hello";
   const buffer = Buffer.from(message);
-  client.write(buffer);
+
+  const header = writeHeader(buffer.length, 10);
+  const packet = Buffer.concat([header, buffer])
+  client.write(packet);
 });
 
 client.on('data', (data) => {
-  console.log(data);
+    const buffer = Buffer.from(data);
+
+    const {length, handlerId} = readHeader(buffer);
+    console.log(`handlerId: ${handlerId}`);
+    console.log(`length: ${length}`);
+
+    const headerSize = TOTAL_LENGTH_SIZE + HANDLER_ID;
+    const message = buffer.slice(headerSize);
+
+    console.log(`server 에게 받은 메세지: ${message}`)
 });
 
 client.on('close', () => {
